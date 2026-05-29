@@ -67,3 +67,5 @@ sensor_frequency_hz=50
 # Терминал 3: Запуск Узла Б (Обработчика)
 ./build/node_b/node_b 127.0.0.1:9090
 ```
+## Демонстрационное видео
+https://disk.yandex.ru/i/EfiL8xVLYwxLOA
