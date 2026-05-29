@@ -223,8 +223,13 @@ public:
 };
 
 
-int main() {
-    SensorApplication app("127.0.0.1:50051", "config.txt");
+int main(int argc, char* argv[]) {
+    std::string server_adress = "127.0.0.1:50051";
+
+    if(argc>1){
+        server_adress = argv[1];
+    }
+    SensorApplication app(server_adress, "config.txt");
     app.Run();
     return 0;
 }

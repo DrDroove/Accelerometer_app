@@ -206,8 +206,15 @@ public:
 };
 
 
-int main() {
-    ServerApplication app("0.0.0.0:50051");
+int main(int argc, char* argv[]) {
+    std::string port = "50051";
+
+    if(argc > 1){
+        port = argv[1];
+    }
+
+    std::string server_adress = "0.0.0.0:" + port;
+    ServerApplication app(server_adress);
     
     app.Start();
     app.Wait();
