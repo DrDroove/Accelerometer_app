@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <queue>
+#include <sstream>
 
 #include <grpcpp/grpcpp.h>
 #include "accelerometer.grpc.pb.h"
@@ -62,9 +63,6 @@ public:
             OnDone(grpc::Status::OK);
             return;
         }
-
-        std::cout << "[Node A] Recv back from server: Timestamp=" << incoming_module_.timestamp() 
-                  << " Module=" << incoming_module_.module() << "\n";
 
         if (log_file_.is_open()) {
             log_file_ << incoming_module_.timestamp() << " " << incoming_module_.module() << "\n";
@@ -122,6 +120,45 @@ private:
     std::thread sensor_thread_;
     std::atomic<bool> running_{true};
 
+    int frequency_hz_ = 50;
+    int sleep_interval_ms_ = 20;
+
+    void LoadConfiguration(const std::string& config_path) {
+        std::ifstream file(config_path);
+        if (!file.is_open()) {
+            std::cout << "[Node A] Config file not found at " << config_path 
+                      << ". Using default frequency: " << frequency_hz_ << " Hz\n";
+            return;
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.empty() || line[0] == '#') continue;
+
+            std::size_t delimiter_pos = line.find('=');
+            if (delimiter_pos == std::string::npos) continue;
+
+            std::string key = line.substr(0, delimiter_pos);
+            std::string value_str = line.substr(delimiter_pos + 1);
+
+            if (key == "sensor_frequency_hz") {
+                try {
+                    int hz = std::stoi(value_str);
+                    if (hz > 0) {
+                        frequency_hz_ = hz;
+                        sleep_interval_ms_ = 1000 / frequency_hz_;
+                    } else {
+                        std::cerr << "[Warning] Frequency must be positive. Using default.\n";
+                    }
+                } catch (...) {
+                    std::cerr << "[Warning] Invalid frequency value in config. Using default.\n";
+                }
+            }
+        }
+        std::cout << "[Node A] Configuration loaded. Frequency: " << frequency_hz_ 
+                  << " Hz (Interval: " << sleep_interval_ms_ << " ms)\n";
+    }
+
     
     void SensorEmulatorLoop() {
         float time_counter = 0.0f;
@@ -140,14 +177,15 @@ private:
             }
 
             time_counter += 0.1f;
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleep_interval_ms_));
         }
     }
 
 public:
-    SensorApplication(const std::string& address) 
+    SensorApplication(const std::string& address, const std::string& config_path) 
         : target_address_(address), running_(true) {
         
+        LoadConfiguration(config_path);
         
         channel_ = grpc::CreateChannel(target_address_, grpc::InsecureChannelCredentials());
         stub_ = accel::AccelerometerService::NewStub(channel_);
@@ -186,7 +224,7 @@ public:
 
 
 int main() {
-    SensorApplication app("127.0.0.1:50051");
+    SensorApplication app("127.0.0.1:50051", "config.txt");
     app.Run();
     return 0;
 }

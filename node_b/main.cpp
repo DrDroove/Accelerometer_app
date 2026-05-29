@@ -48,12 +48,6 @@ public:
 
         
         float module = std::hypot(incoming_packet_.x(), incoming_packet_.y(), incoming_packet_.z());
-
-        std::cout << "[Node B] Recv: x=" << incoming_packet_.x() 
-                  << " y=" << incoming_packet_.y() 
-                  << " z=" << incoming_packet_.z() 
-                  << " -> Computed Module: " << module << "\n";
-        
         
         outgoing_module_.set_timestamp(incoming_packet_.timestamp());
         outgoing_module_.set_module(module);
